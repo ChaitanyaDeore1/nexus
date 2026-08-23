@@ -1,0 +1,37 @@
+﻿# dependencies
+node_modules/
+apps/*/node_modules/
+packages/*/node_modules/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# build output
+dist/
+build/
+apps/web/dist/
+apps/api/dist/
+apps/worker/dist/
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# os
+.DS_Store
+Thumbs.db
+
+# prisma
+packages/database/prisma/*.db
+
+# misc
+.turbo/
+coverage/
