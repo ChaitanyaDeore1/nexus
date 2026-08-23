@@ -1,0 +1,231 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  DEVELOPER
+  VIEWER
+}
+
+enum PullRequestState {
+  OPEN
+  CLOSED
+  MERGED
+}
+
+enum IssueState {
+  OPEN
+  CLOSED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships OrganizationMember[]
+  activities  Activity[]
+
+  @@map("users")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members      OrganizationMember[]
+  repositories Repository[]
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String   @id @default(cuid())
+  role           Role     @default(VIEWER)
+  createdAt      DateTime @default(now())
+
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@map("organization_members")
+}
+
+model Repository {
+  id            String   @id @default(cuid())
+  githubId      BigInt   @unique
+  name          String
+  fullName      String   @unique
+  description   String?
+  stars         Int      @default(0)
+  forks         Int      @default(0)
+  defaultBranch String   @default("main")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  pullRequests PullRequest[]
+  issues       Issue[]
+  commits      Commit[]
+  activities   Activity[]
+
+  @@index([organizationId])
+  @@map("repositories")
+}
+
+model PullRequest {
+  id           String            @id @default(cuid())
+  githubId     BigInt            @unique
+  number       Int
+  title        String
+  description  String?
+  state        PullRequestState  @default(OPEN)
+  authorLogin  String
+  additions    Int               @default(0)
+  deletions    Int               @default(0)
+  changedFiles Int               @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  mergedAt     DateTime?
+  closedAt     DateTime?
+
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  reviews    PullRequestReview[]
+  aiAnalysis AIAnalysis?
+
+  @@unique([repositoryId, number])
+  @@index([repositoryId])
+  @@map("pull_requests")
+}
+
+model PullRequestReview {
+  id          String   @id @default(cuid())
+  githubId    BigInt   @unique
+  reviewerLogin String
+  state       String
+  body        String?
+  submittedAt DateTime
+
+  pullRequestId String
+  pullRequest   PullRequest @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
+
+  @@index([pullRequestId])
+  @@map("pull_request_reviews")
+}
+
+model Commit {
+  id            String   @id @default(cuid())
+  sha           String   @unique
+  message       String
+  authorName    String
+  authorEmail   String
+  additions     Int      @default(0)
+  deletions     Int      @default(0)
+  committedAt   DateTime
+
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@index([repositoryId])
+  @@map("commits")
+}
+
+model Issue {
+  id          String     @id @default(cuid())
+  githubId    BigInt     @unique
+  number      Int
+  title       String
+  description String?
+  state       IssueState @default(OPEN)
+  authorLogin String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  closedAt    DateTime?
+
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@unique([repositoryId, number])
+  @@index([repositoryId])
+  @@map("issues")
+}
+
+model AIAnalysis {
+  id                   String    @id @default(cuid())
+  riskScore            Int
+  riskLevel            RiskLevel
+  summary              String
+  potentialIssues      Json
+  securityConcerns     Json
+  testRecommendations  Json
+  suggestions          Json
+  rawModelResponse     Json
+  createdAt            DateTime  @default(now())
+
+  pullRequestId String      @unique
+  pullRequest   PullRequest @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
+
+  @@map("ai_analyses")
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  type      String
+  message   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  repositoryId String?
+  repository   Repository? @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@index([repositoryId])
+  @@index([userId])
+  @@map("activities")
+}
+
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  deliveryId  String   @unique
+  eventType   String
+  processed   Boolean  @default(false)
+  payload     Json
+  receivedAt  DateTime @default(now())
+  processedAt DateTime?
+
+  @@map("webhook_events")
+}
