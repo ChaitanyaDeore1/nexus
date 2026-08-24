@@ -16,7 +16,7 @@ import { LoginDto } from './dto/login.dto';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-
+  
   @Post('register')
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
@@ -41,6 +41,7 @@ export class AuthController {
     // real revocation via a Redis blocklist if that's added later.
     return { message: 'Logged out.' };
   }
+   
 
   @Get('me')
   @UseGuards(AuthGuard('jwt'))
