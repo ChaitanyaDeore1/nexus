@@ -5,7 +5,7 @@ export function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div>Loading...</div>; // replaced with a real skeleton in Step 42 (UI Polish)
+    return <div>Loading...</div>;
   }
 
   if (!isAuthenticated) {
